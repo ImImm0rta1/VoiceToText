@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # whisper.cpp tag/branch to build against. Change it if you want a newer version.
+  WHISPER_REF: v1.7.4
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Fetch whisper.cpp
+        run: git clone --depth 1 --branch "$WHISPER_REF" https://github.com/ggml-org/whisper.cpp app/src/main/cpp/whisper.cpp
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform, NDK and CMake
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "cmake;3.22.1" "ndk;26.1.10909125"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      - name: Build debug APKs (offline + online)
+        run: gradle assembleOfflineDebug assembleOnlineDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OfflineDictation-debug-apks
+          path: app/build/outputs/apk/*/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error

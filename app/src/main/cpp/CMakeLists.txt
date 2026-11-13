@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(sttjni)
+# ggml is very slow in Debug builds, so always build the native part optimized.
+set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+set(WHISPER_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(WHISPER_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(WHISPER_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+# Clone whisper.cpp into this folder (see README)
+add_subdirectory(whisper.cpp ${CMAKE_CURRENT_BINARY_DIR}/whisper)
+add_library(sttjni SHARED whisper_jni.cpp)
+target_include_directories(sttjni PRIVATE whisper.cpp/include whisper.cpp/ggml/include)
+target_link_libraries(sttjni whisper log)

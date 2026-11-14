@@ -18,7 +18,7 @@ JNIEXPORT void JNICALL Java_com_offline_stt_WhisperEngine_nFree(JNIEnv*, jobject
 }
 
 // Returns UTF-8 bytes (decoded in Kotlin, avoids JNI crashes on split multibyte chars).
-JNIEXPORT jbyteArray JNICALL Java_com_offline_stt_WhisperEngine_nRun(JNIEnv* env, jobject, jlong h, jfloatArray audio, jint threads) {
+JNIEXPORT jbyteArray JNICALL Java_com_offline_stt_WhisperEngine_nRun(JNIEnv* env, jobject, jlong h, jfloatArray audio, jint threads, jint audio_ctx) {
     auto* ctx = (whisper_context*) h;
     jsize n = env->GetArrayLength(audio);
     jfloat* d = env->GetFloatArrayElements(audio, nullptr);
@@ -33,6 +33,11 @@ JNIEXPORT jbyteArray JNICALL Java_com_offline_stt_WhisperEngine_nRun(JNIEnv* env
     wp.print_timestamps = false;
     wp.print_special = false;
     wp.greedy.best_of = 1;
+    if (audio_ctx > 0) {            // live dictation: one short utterance
+        wp.audio_ctx = audio_ctx;
+        wp.single_segment = true;
+        wp.temperature_inc = 0.0f;  // no slow re-decode fallbacks
+    }
     int rc = whisper_full(ctx, wp, d, n);
     env->ReleaseFloatArrayElements(audio, d, JNI_ABORT);
     std::string out;
